@@ -52,21 +52,27 @@ class Nginx(object):
                 continue
 
             # location
-            locations = re.findall(r'location\s*([\^~\*=]*)\s*([^{ ]*)\s*\{[^}]*proxy_pass\s+https?://([^;/]*)[^;]*;',
-                                   singleServer)
-            locations += re.findall(r'location\s*([\^~\*=]*)\s*([^{ ]*)\s*\{[^}]*root\s+([^;]*)[^;]*;', singleServer)
-            locations += re.findall(r'location\s*([\^~\*=]*)\s*([^{ ]*)\s*\{[^}]*index\s+([^;]*)[^;]*;', singleServer)
-
+            locations = re.findall(r'location\s*([\^~\*=/]*)\s+([^{ ]*)\s*[^}]*proxy_pass\s+https?://([^;/]*)[^;]*;'
+                                   , singleServer)
+            if re.findall(r'location\s*([\^~\*=/]*)\s+([^{ ]*)\s*[^}]*root\s+([^;]*).*;', singleServer) is not None:
+                locations += re.findall(r'location\s*([\^~\*=/]*)\s+([^{ ]*)\s*[^}]*root\s+([^;]*)[^}]*index\s+([^;]*).*;'
+                                        , singleServer)
             backend_list = list()
             backend_ip = ''
 
             # 可能存在多个location
             if len(locations) > 0:
                 for location in locations:
+                    location = list(location)
+                    try:
+                        if location[3] is not None:
+                            ret = location[2] + "/" + location[3]
+                            location[2] = ret
+                    except Exception as error:
+                        pass
                     way = location[0]
                     backend_path = location[1]
-                    poolname = location[2]
-                    backend_ip = poolname
+                    backend_ip = location[2]
 
                     backend_list.append({"way": way, "backend_path": backend_path, "backend_ip": backend_ip})
 
